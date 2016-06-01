@@ -91,7 +91,7 @@
 #' @export
 #' @importFrom stats aggregate
 
-compute.ALD <- function(dat, tolerance = 0.01) {
+compute.ALD <- function(dat, tolerance = 0.01, symm=FALSE) {
   names.req <- c("locus1", "locus2", "allele1", "allele2", "haplo.freq")
   check.names <- names.req %in% names(dat)
   if (sum(!check.names) > 0)
@@ -103,6 +103,10 @@ compute.ALD <- function(dat, tolerance = 0.01) {
     stop("Sum of haplo freqs < 1; sum=", sum(dat$haplo.freq))
   if (abs(1 - sum(dat$haplo.freq)) > 0.01)
     warning("Sum of haplo freqs is not 1; sum=", sum(dat$haplo.freq))
+  if (sum( (names(dat) %in% c("allele.freq1", "allele.freq2")) )) {
+    dat$allele.freq1 <- NULL
+    dat$allele.freq2 <- NULL
+  }  
   locus1 <- unique(dat$locus1)
   locus2 <- unique(dat$locus2)
   
@@ -118,8 +122,8 @@ compute.ALD <- function(dat, tolerance = 0.01) {
   af2 <- aggregate(dat$haplo.freq, by = by.vars2, FUN = sum)
   names(af1)[length(names(af1))] <- "allele.freq1"
   names(af2)[length(names(af2))] <- "allele.freq2"
-  mrg1 <- merge(dat, af1, by.x = c("allele1"), by.y = c("allele1"), all.x = TRUE, all.y = FALSE)
-  mrg2 <- merge(mrg1, af2, by.x = c("allele2"), by.y = c("allele2"), all.x = TRUE, all.y = FALSE)
+  mrg1 <- merge(dat, af1, by.x = c("allele1"), by.y = c("allele1"), all.x = T, all.y = F)
+  mrg2 <- merge(mrg1, af2, by.x = c("allele2"), by.y = c("allele2"), all.x = T, all.y = F)
   dat <- mrg2
   
   F.1 <- 0
@@ -150,8 +154,41 @@ compute.ALD <- function(dat, tolerance = 0.01) {
     F.1.2.prime <- (F.1.2 - F.1)/(1 - F.1)
     ALD.1.2 <- sqrt(F.1.2.prime)
   }
-  ALD <- data.frame(locus1, locus2, F.1, F.1.2, F.2, F.2.1, ALD.1.2, ALD.2.1)
-  cat("   ALD.x.y is asymmetric LD for locus x conditioned on locus y\n\n")
-  return(ALD)
+
+  if (symm==TRUE) {
+    # add zero frequency haplotypes
+    a1.list <- sort(unique(as.character(dat$allele1)))
+    a2.list <- sort(unique(as.character(dat$allele2)))
+    tmp <- expand.grid(a1.list,a2.list) #create all possible combos of allele1 & allele2
+    names(tmp)[1] <- "allele1"
+    names(tmp)[2] <- "allele2"
+    dat1 <- unique( dat[dat$allele1 %in% unique(dat$allele1),c("allele1","allele.freq1")] )
+    dat2 <- unique( dat[dat$allele2 %in% unique(dat$allele2),c("allele2","allele.freq2")] )
+    tmp1 <- merge(tmp, dat1, by="allele1", all.x=T, all.y=T)
+    tmp  <- merge(tmp1, dat2, by="allele2", all.x=T, all.y=T)
+    dat$allele.freq1 <- NULL
+    dat$allele.freq2 <- NULL
+    tmp1 <- merge(tmp, dat, by=c("allele1","allele2"), all.x=T, all.y=T)
+    tmp1$haplo.freq[is.na(tmp1$haplo.freq)] <- 0
+    # compute Dprime & Wn
+    tmp1$d <- tmp1$haplo.freq - tmp1$allele.freq1*tmp1$allele.freq2
+    tmp1$dprime.den <- rep(0,dim(tmp1)[1])
+    tmp1$den.lt0 <- pmin( tmp1$allele.freq1*tmp1$allele.freq2, (1-tmp1$allele.freq1)*(1-tmp1$allele.freq2) )
+    tmp1$den.ge0 <- pmin( (1-tmp1$allele.freq1)*tmp1$allele.freq2, tmp1$allele.freq1*(1-tmp1$allele.freq2) )
+    tmp1$dprime.den[tmp1$d < 0] <- tmp1$den.lt0[tmp1$d < 0]
+    tmp1$dprime.den[tmp1$d >=0] <- tmp1$den.ge0[tmp1$d >=0]
+    tmp1$dprime <- tmp1$d/tmp1$dprime.den
+    Dprime <- sum(abs(tmp1$dprime)*tmp1$allele.freq1*tmp1$allele.freq2)
+    w  <- sum(tmp1$d^2/(tmp1$allele.freq1*tmp1$allele.freq2))
+    Wn <- sqrt( w / (min( length(unique(tmp1$allele1)), length(unique(tmp1$allele2)) ) - 1) )  
+    
+    ALD <- data.frame(locus1, locus2, F.1, F.1.2, F.2, F.2.1, ALD.1.2, ALD.2.1, Dprime, Wn)
+    cat("   ALD.x.y is asymmetric LD for locus x conditioned on locus y\n\n")
+    return(ALD)
+  } else {
+    ALD <- data.frame(locus1, locus2, F.1, F.1.2, F.2, F.2.1, ALD.1.2, ALD.2.1)
+    cat("   ALD.x.y is asymmetric LD for locus x conditioned on locus y\n\n")
+    return(ALD)
+  }
 }
 
