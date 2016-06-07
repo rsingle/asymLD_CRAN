@@ -25,6 +25,8 @@ Parameter **dat** is a data.frame with 5 required variables:
 
 Parameter **tolerance** is a threshold for the sum of the haplotype frequencies. If the sum of the haplotype frequencies is greater than 1+tolerance or less than 1-tolerance an error is returned.
 
+Parameter **symm** is an indicator for whether to compute symmetric measures Dprime & Wn (default=FALSE)
+
 The function returns a dataframe (in the above example **ald.results**) with the following components:
 
 - *locus1*	The name of the first locus.

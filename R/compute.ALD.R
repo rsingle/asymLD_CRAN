@@ -15,6 +15,8 @@
 #'    If the sum of the haplotype frequencies is greater than 1+tolerance or less
 #'    than 1-tolerance an error is returned. The default is 0.01.
 #'
+#' @param symm An indicator for whether to compute symmetric measures Dprime & Wn (default=FALSE)
+#'
 #' @return The return value is a dataframe with the following components:
 #'  \tabular{ll}{
 #'  \code{locus1}	\tab The name of the first locus.\cr
@@ -122,8 +124,8 @@ compute.ALD <- function(dat, tolerance = 0.01, symm=FALSE) {
   af2 <- aggregate(dat$haplo.freq, by = by.vars2, FUN = sum)
   names(af1)[length(names(af1))] <- "allele.freq1"
   names(af2)[length(names(af2))] <- "allele.freq2"
-  mrg1 <- merge(dat, af1, by.x = c("allele1"), by.y = c("allele1"), all.x = T, all.y = F)
-  mrg2 <- merge(mrg1, af2, by.x = c("allele2"), by.y = c("allele2"), all.x = T, all.y = F)
+  mrg1 <- merge(dat, af1, by.x = c("allele1"), by.y = c("allele1"), all.x = TRUE, all.y = FALSE)
+  mrg2 <- merge(mrg1, af2, by.x = c("allele2"), by.y = c("allele2"), all.x = TRUE, all.y = FALSE)
   dat <- mrg2
   
   F.1 <- 0
