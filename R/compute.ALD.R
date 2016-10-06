@@ -105,7 +105,7 @@ compute.ALD <- function(dat, tolerance = 0.01, symm=FALSE) {
     stop("Sum of haplo freqs < 1; sum=", sum(dat$haplo.freq))
   if (abs(1 - sum(dat$haplo.freq)) > 0.01)
     warning("Sum of haplo freqs is not 1; sum=", sum(dat$haplo.freq))
-  if (sum( (names(dat) %in% c("allele.freq1", "allele.freq2")) )) {
+  if (sum( (names(dat) %in% c("allele.freq1", "allele.freq2")) )>0) {
     dat$allele.freq1 <- NULL
     dat$allele.freq2 <- NULL
   }  
